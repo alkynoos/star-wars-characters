@@ -1,59 +1,49 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
+import CardDisplay from "./components/card-desplay/CardDesplay";
+import Loader from "./components/loader/Loader";
+import Pagination from "./components/pagination/Pagination"; // Import the Pagination component
+
 function App() {
   const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("https://swapi.dev/api/people/");
+        const response = await fetch(
+          `https://swapi.dev/api/people/?page=${currentPage}`
+        );
         const data = await response.json();
         setData(data);
+        setIsLoading(false);
       } catch (error) {
         console.error(error);
       }
     };
 
     fetchData();
-  }, []);
+  }, [currentPage]);
 
-  // Define an array of background colors based on species length
-  const backgroundColors = [
-    "bg-primary",
-    "bg-secondary",
-    "bg-success",
-    "bg-danger",
-    "bg-warning",
-  ];
+  const totalPages = Math.ceil(data.count / 10); // Calculate total pages based on the count
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="App">
       <header className="App-header header">Star Wars</header>
-      <div className="row">
-        {data.results &&
-          data.results.map((character) => (
-            <div className="col-3 mb-2" key={character.name}>
-              <div
-                className={`card ${
-                  backgroundColors[
-                    character.species.length % backgroundColors.length
-                  ]
-                }`}
-              >
-                <img
-                  src={`https://picsum.photos/200?random=${Math.floor(
-                    Math.random() * 100
-                  )}`}
-                  className="card-img-top img-fluid card-img"
-                  alt="..."
-                />
-                <div className="card-body">
-                  <h5 className="card-title">{character.name}</h5>
-                </div>
-              </div>
-            </div>
-          ))}
-      </div>
+      {isLoading ? <Loader /> : <CardDisplay characterData={data.results} />}
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }
