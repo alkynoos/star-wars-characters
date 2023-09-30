@@ -1,5 +1,5 @@
 import React from "react";
-import "./CardDesplay.css";
+import "./CardDisplay.css";
 
 function CardDisplay({ characterData }) {
   const backgroundColors = [

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import CardDisplay from "./components/card-desplay/CardDesplay";
+import CardDisplay from "./components/card-display/CardDisplay";
 import Loader from "./components/loader/Loader";
 import Pagination from "./components/pagination/Pagination"; // Import the Pagination component
 
