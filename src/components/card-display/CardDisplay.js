@@ -10,6 +10,10 @@ function CardDisplay({ characterData }) {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  if (!Array.isArray(characterData)) {
+    return <div>No character data available</div>;
+  }
+
   const openModal = (character) => {
     setSelectedCharacter(character);
     setIsModalOpen(true);
@@ -34,7 +38,7 @@ function CardDisplay({ characterData }) {
             }}
           >
             <img
-              src={`https://picsum.photos/200?random=${Math.floor(
+              src={`https://picsum.photos/150?random=${Math.floor(
                 Math.random() * 100
               )}`}
               className="card-img-top img-fluid card-img"

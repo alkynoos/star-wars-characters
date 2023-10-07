@@ -1,10 +1,23 @@
+const speciesColorCache = {};
+
 export async function mapSpeciesNames(characterData) {
   const mappedCharacterData = await Promise.all(
     characterData.map(async (character) => {
       if (character.species && character.species.length > 0) {
-        const speciesResponse = await fetch(character.species[0]);
-        const speciesData = await speciesResponse.json();
-        const speciesName = speciesData.name || "Unknown Species";
+        let speciesName = "Unknown Species";
+        if (speciesColorCache[character.species]) {
+          speciesName = speciesColorCache[character.species].name;
+        } else {
+          const speciesResponse = await fetch(character.species[0]);
+          const speciesData = await speciesResponse.json();
+          speciesName = speciesData.name || "Unknown Species";
+          speciesColorCache[character.species] = {
+            name: speciesName,
+            backgroundColor:
+              speciesColors[speciesName]?.backgroundColor || "#9FA4C4",
+            textColor: speciesColors[speciesName]?.textColor || "#000000",
+          };
+        }
         character.species = speciesName;
       } else {
         character.species = "Unknown Species";
@@ -15,6 +28,8 @@ export async function mapSpeciesNames(characterData) {
 
   return mappedCharacterData;
 }
+
+// use the mapping of colors when u receice the data from the api
 
 export function getBackgroundColorForSpecies(species) {
   return speciesColors[species]?.backgroundColor || "bg-secondary";
@@ -85,7 +100,7 @@ export const speciesColors = {
     backgroundColor: "#D2691E",
     textColor: "text-white",
   },
-  TwiLek: {
+  "Twi'lek": {
     backgroundColor: "#800080",
     textColor: "text-white",
   },
@@ -129,7 +144,7 @@ export const speciesColors = {
     backgroundColor: "#8B008B",
     textColor: "text-white",
   },
-  KelDor: {
+  "Kel Dor": {
     backgroundColor: "#FF4500",
     textColor: "#000000",
   },
@@ -173,7 +188,7 @@ export const speciesColors = {
     backgroundColor: "#4169E1",
     textColor: "text-white",
   },
-  Pauan: {
+  "Pau'an": {
     backgroundColor: "#483D8B",
     textColor: "text-white",
   },

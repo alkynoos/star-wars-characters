@@ -1,51 +1,60 @@
-// import SearchBar from "./components/search-bar/SearchBar";
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import CardDisplay from "./components/card-display/CardDisplay";
 import Loader from "./components/loader/Loader";
 import Pagination from "./components/pagination/Pagination";
 import { mapSpeciesNames } from "./helpers/speciesColors";
+import SearchBar from "./components/search-bar/SearchBar";
+import { useQuery } from "@tanstack/react-query";
 
 function App() {
-  const [data, setData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [mappedData, setMappedData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = async (page) => {
-    try {
-      const response = await fetch(
-        `https://swapi.dev/api/people/?page=${page}`
-      );
-      if (!response.ok) {
-        // Check the response status code
-        throw new Error("Network response was not ok");
-      }
-      const data = await response.json();
-      setData(data);
-      setIsLoading(false);
-    } catch (error) {
-      console.error(error);
-    }
+  const handleSearchResults = async (resultsPromise) => {
+    const results = await resultsPromise;
+    setSearchResults(results);
+    // console.log("app.js", results, "app.js");
   };
 
-  const fetchMappedData = async (results) => {
+  const fetchCharacters = async (page = 1) => {
+    setIsLoading(true);
+    const response = await fetch(`https://swapi.dev/api/people/?page=${page}`);
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+    setIsLoading(false);
+    return data;
+  };
+
+  const { data, isFetching } = useQuery(
+    ["characters", currentPage],
+    () => fetchCharacters(currentPage),
+    { keepPreviousData: true }
+  );
+
+  const handleMapSpeciesNames = async (results) => {
     const mappedData = await mapSpeciesNames(results);
     setMappedData(mappedData);
   };
 
   useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage]);
+    if (data?.results) {
+      handleMapSpeciesNames(data.results);
+    }
+  }, [data]);
 
   useEffect(() => {
-    if (data.results) {
-      // Add a check to ensure that data.results is not undefined
-      fetchMappedData(data.results);
+    // console.log("search useEffect", searchResults);
+    if (searchResults.length > 0) {
+      handleMapSpeciesNames(searchResults);
     }
-  }, [data.results]);
+  }, [searchResults]);
 
-  const totalPages = Math.ceil(data.count / 10);
+  const totalPages = Math.ceil(data?.count / 10);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -53,12 +62,24 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    fetchCharacters(currentPage);
+  }, [currentPage]);
+
   return (
     <div className="App">
       <header className="App-header header">Star Wars</header>
-      {/* <SearchBar /> */}
-      {isLoading ? <Loader /> : <CardDisplay characterData={mappedData} />}
+      <SearchBar onSearchResults={handleSearchResults} />
+      {isLoading || isFetching ? (
+        <Loader key={`${isLoading}-${isFetching}`} />
+      ) : (
+        <CardDisplay
+          key={JSON.stringify(mappedData)}
+          characterData={mappedData}
+        />
+      )}
       <Pagination
+        key={currentPage}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
@@ -66,5 +87,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
