@@ -52,7 +52,6 @@ function selectedFilters(
   if (searchText !== "") {
     filters.push({ filter: "searchText", value: searchText });
   }
-  console.log("filters", filters);
 
   return filters;
 }
@@ -69,7 +68,6 @@ async function filterCharacters(characterSearchResults, setState, filters) {
       characterSearchResults.results,
       singleFilter
     );
-    console.log("filteredData", filteredData);
   }
 
   setState(filteredData);
@@ -81,19 +79,15 @@ async function filterData(
   data,
   singleFilter = false
 ) {
-  console.log("filterData", filter, filterValue, data, singleFilter);
   const propName = filter === "films" ? "title" : "name";
   if (!singleFilter) {
-    console.log("multiple filters", filter);
     return data.filter(
       (character) =>
         character.filter === getSelectedUrl(filter, propName, filterValue)
     );
   } else {
-    console.log("single filter", filter);
     let url = getSelectedUrl(dropdownData, propName, filterValue);
     const characterFromFilter = await fetchCharacterFromFilter(url, filter);
-    console.log("characterFromFilter", characterFromFilter);
     return characterFromFilter;
   }
 }
@@ -101,13 +95,10 @@ const fetchCharacterFromFilter = async (url, filter) => {
   const characters = [];
   const response = await axios.get(url);
   let fetchedCharacter = [];
-  console.log("fileter", filter);
-  console.log("response", response);
 
   if (response.data) {
     if (filter === "films") {
       for (let i = 0; i < response.data.characters.length; i++) {
-        console.log("inside for loop" + i);
         fetchedCharacter = await fetchCharacter(response.data.characters[i]);
         characters.push(fetchedCharacter);
       }
@@ -169,6 +160,13 @@ function SearchBar(props) {
     setIsLoading(false);
   };
 
+  const handleReset = () => {
+    setSearchText("");
+    document.getElementById("films").selectedIndex = 0;
+    document.getElementById("homeworlds").selectedIndex = 0;
+    document.getElementById("species").selectedIndex = 0;
+  };
+
   useEffect(() => {
     fetchData("https://swapi.dev/api/films/", setFilms, setFilmsNextLink);
     fetchData(
@@ -183,15 +181,15 @@ function SearchBar(props) {
     switch (selectedOption) {
       case "loadMoreFilms":
         fetchData(filmsNextLink, setFilms, setFilmsNextLink);
-        document.getElementById("films").value = "";
+        document.getElementById("films").selectedIndex = 0;
         break;
       case "loadMoreHomeworlds":
         fetchData(homeworldsNextLink, setHomeworlds, setHomeworldsNextLink);
-        document.getElementById("homeworlds").value = "";
+        document.getElementById("homeworlds").selectedIndex = 0;
         break;
       case "loadMoreSpecies":
         fetchData(speciesNextLink, setSpecies, setSpeciesNextLink);
-        document.getElementById("species").value = "";
+        document.getElementById("species").selectedIndex = 0;
         break;
       default:
       // Handle other dropdown selections
@@ -261,10 +259,17 @@ function SearchBar(props) {
                 <option value="loadMoreSpecies">Load More Species</option>
               )}
             </select>
+            <button type="submit" className="btn btn-primary me-2">
+              Search
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleReset}
+            >
+              Reset
+            </button>
           </div>
-          <button type="submit" className="btn btn-primary">
-            Search
-          </button>
         </div>
       </form>
       {isLoading && (
