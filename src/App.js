@@ -18,11 +18,9 @@ function App() {
     const results = await resultsPromise;
     setSearchResults(results);
     setTotalPages(0);
-    console.log("app.js", results, "app.js");
   };
 
   const resetState = () => {
-    console.log("resetting state");
     setSearchResults([]);
     setCurrentPage(1);
     setMappedData([]);

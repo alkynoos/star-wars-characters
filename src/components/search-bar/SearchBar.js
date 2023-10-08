@@ -91,7 +91,6 @@ async function filterCharacters(
     if (filteredData.length === 0) {
       alert("We couldn't find anyone with those parameters.");
     }
-    console.log(filteredData);
     setState(filteredData);
   } catch (error) {
     console.error(error);
@@ -222,9 +221,7 @@ function SearchBar(props) {
   }, []);
 
   const initializeDropdowns = async () => {
-    console.log("dropdowns", films, homeworlds, species);
     if (films.length > 0 || homeworlds.length > 0 || species.length > 0) return;
-    console.log("initializeDropdowns");
     setIsLoading(true);
     setError(null);
     await fetchDropdownData(
