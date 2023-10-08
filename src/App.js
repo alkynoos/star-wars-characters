@@ -5,18 +5,29 @@ import Loader from "./components/loader/Loader";
 import Pagination from "./components/pagination/Pagination";
 import { mapSpeciesNames } from "./helpers/speciesColors";
 import SearchBar from "./components/search-bar/SearchBar";
-import { useQuery } from "@tanstack/react-query";
 
 function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [mappedData, setMappedData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  // const [count, setCount] = useState(0);
 
   const handleSearchResults = async (resultsPromise) => {
     const results = await resultsPromise;
     setSearchResults(results);
-    // console.log("app.js", results, "app.js");
+    setTotalPages(0);
+    console.log("app.js", results, "app.js");
+  };
+
+  const resetState = () => {
+    console.log("resetting state");
+    setSearchResults([]);
+    setCurrentPage(1);
+    setMappedData([]);
+    setIsLoading(false);
+    setTotalPages(0);
   };
 
   const fetchCharacters = async (page = 1) => {
@@ -27,14 +38,10 @@ function App() {
     }
     const data = await response.json();
     setIsLoading(false);
-    return data;
+    // setCount(data.count);
+    setTotalPages(Math.ceil(data.count / 10));
+    return data.results;
   };
-
-  const { data, isFetching } = useQuery(
-    ["characters", currentPage],
-    () => fetchCharacters(currentPage),
-    { keepPreviousData: true }
-  );
 
   const handleMapSpeciesNames = async (results) => {
     const mappedData = await mapSpeciesNames(results);
@@ -42,19 +49,12 @@ function App() {
   };
 
   useEffect(() => {
-    if (data?.results) {
-      handleMapSpeciesNames(data.results);
-    }
-  }, [data]);
-
-  useEffect(() => {
-    // console.log("search useEffect", searchResults);
     if (searchResults.length > 0) {
       handleMapSpeciesNames(searchResults);
+    } else {
+      fetchCharacters(currentPage).then(handleMapSpeciesNames);
     }
-  }, [searchResults]);
-
-  const totalPages = Math.ceil(data?.count / 10);
+  }, [searchResults, currentPage]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -62,29 +62,28 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    fetchCharacters(currentPage);
-  }, [currentPage]);
-
   return (
     <div className="App">
       <header className="App-header header">Star Wars</header>
-      <SearchBar onSearchResults={handleSearchResults} />
-      {isLoading || isFetching ? (
-        <Loader key={`${isLoading}-${isFetching}`} />
+      <SearchBar onSearchResults={handleSearchResults} onReset={resetState} />
+      {isLoading ? (
+        <Loader />
       ) : (
         <CardDisplay
           key={JSON.stringify(mappedData)}
           characterData={mappedData}
         />
       )}
-      <Pagination
-        key={currentPage}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
+      {totalPages > 0 && (
+        <Pagination
+          key={currentPage}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 }
+
 export default App;

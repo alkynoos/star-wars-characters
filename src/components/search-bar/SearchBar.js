@@ -1,8 +1,18 @@
+//TODO:
+// Refactor this component to use react-query if you have time - remove it from the project with the commands
+// Remove the pagination when showing resualts from the search bar - fetch data complet think if posible to optimize it (maybe i should check the code and choose the lowest code)
+// Check the weard behavior of the rendering in general - search dropdowns DONE
+// Give to the data url for photos so they are consistant
+// Fix the loading in general
+// Error handling
+// Refactor the code to be more readable
+// find the unknown species if does not exist add it
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./SearchBar.css";
 
-async function fetchData(url, setState, setNextLink) {
+async function fetchDropdownData(url, setState, setNextLink) {
   try {
     const response = await axios.get(url);
     setState((prevState) => [...prevState, ...response.data.results]);
@@ -10,6 +20,18 @@ async function fetchData(url, setState, setNextLink) {
   } catch (error) {
     console.error(error);
   }
+}
+async function fetchDataForSearch(url) {
+  const response = await axios.get(url);
+  while (response.data.next) {
+    const response2 = await axios.get(response.data.next);
+    response.data.results = [
+      ...response.data.results,
+      ...response2.data.results,
+    ];
+    response.data.next = response2.data.next;
+  }
+  return response;
 }
 
 function getSelectedUrl(items, propName, selectedValue) {
@@ -28,7 +50,7 @@ function selectedFilters(
   species
 ) {
   const filters = [];
-  if (searchText !== "") {
+  if (searchText.trim() !== "") {
     filters.push({ filter: "searchText", value: searchText });
   }
   if (selectedDDFilm !== "Select a Film") {
@@ -58,7 +80,6 @@ function selectedFilters(
 async function filterCharacters(characterSearchResults, setState, filters) {
   let filteredData = characterSearchResults.results;
   let singleFilter = filters.length === 1 ? true : false;
-  console.log("characterSearchResults.results", characterSearchResults);
 
   for (let i = 0; i < filters.length; i++) {
     filteredData = await filterData(
@@ -69,7 +90,11 @@ async function filterCharacters(characterSearchResults, setState, filters) {
       singleFilter
     );
   }
-  console.log("filteredData", filteredData);
+
+  if (filteredData.length === 0) {
+    alert("We couldn't find anyone with those parameters.");
+  }
+  console.log(filteredData);
   setState(filteredData);
 }
 async function filterData(
@@ -79,13 +104,11 @@ async function filterData(
   data,
   singleFilter = false
 ) {
-  console.log("filterData", filter, filterValue, dropdownData, data);
   const propName = filter === "films" ? "title" : "name";
 
   if (!singleFilter) {
     if (filter === "searchText") return data;
     let url = getSelectedUrl(dropdownData, propName, filterValue);
-    console.log("url", url);
     if (filter === "films")
       return data.filter((character) => character.films.includes(url));
     if (filter === "planets")
@@ -93,7 +116,6 @@ async function filterData(
     if (filter === "species")
       return data.filter((character) => character.species.includes(url));
   } else {
-    console.log("singleFilter", singleFilter);
     if (filter === "searchText") return data;
     let url = getSelectedUrl(dropdownData, propName, filterValue);
     const characterFromFilter = await fetchCharacterFromFilter(url, filter);
@@ -161,9 +183,17 @@ function SearchBar(props) {
       species
     );
 
-    const response = await axios.get(
-      `https://swapi.dev/api/people/?search=${encodeURIComponent(searchText)}`
-    );
+    if (filters.length === 0) {
+      alert("Please select at least one filter to search.");
+      setIsLoading(false);
+      return;
+    }
+
+    const searchUrl = `https://swapi.dev/api/people/?search=${encodeURIComponent(
+      searchText
+    )}`;
+    const response = await fetchDataForSearch(searchUrl);
+
     const characterSearchResults = response.data;
     filterCharacters(characterSearchResults, props.onSearchResults, filters);
     setIsLoading(false);
@@ -174,34 +204,56 @@ function SearchBar(props) {
     document.getElementById("films").selectedIndex = 0;
     document.getElementById("homeworlds").selectedIndex = 0;
     document.getElementById("species").selectedIndex = 0;
+    props.onReset();
   };
 
   useEffect(() => {
-    fetchData("https://swapi.dev/api/films/", setFilms, setFilmsNextLink);
-    fetchData(
+    initializeDropdowns();
+  }, []);
+
+  const initializeDropdowns = async () => {
+    console.log("dropdowns", films, homeworlds, species);
+    if (films.length > 0 || homeworlds.length > 0 || species.length > 0) return;
+    console.log("initializeDropdowns");
+    setIsLoading(true);
+    await fetchDropdownData(
+      "https://swapi.dev/api/films/",
+      setFilms,
+      setFilmsNextLink
+    );
+    await fetchDropdownData(
       "https://swapi.dev/api/planets/",
       setHomeworlds,
       setHomeworldsNextLink
     );
-    fetchData("https://swapi.dev/api/species/", setSpecies, setSpeciesNextLink);
-  }, []);
+    await fetchDropdownData(
+      "https://swapi.dev/api/species/",
+      setSpecies,
+      setSpeciesNextLink
+    );
+    setIsLoading(false);
+  };
 
   const handleDropdownChange = (selectedOption) => {
     switch (selectedOption) {
       case "loadMoreFilms":
-        fetchData(filmsNextLink, setFilms, setFilmsNextLink);
+        fetchDropdownData(filmsNextLink, setFilms, setFilmsNextLink);
         document.getElementById("films").selectedIndex = 0;
         break;
       case "loadMoreHomeworlds":
-        fetchData(homeworldsNextLink, setHomeworlds, setHomeworldsNextLink);
+        fetchDropdownData(
+          homeworldsNextLink,
+          setHomeworlds,
+          setHomeworldsNextLink
+        );
         document.getElementById("homeworlds").selectedIndex = 0;
         break;
       case "loadMoreSpecies":
-        fetchData(speciesNextLink, setSpecies, setSpeciesNextLink);
+        fetchDropdownData(speciesNextLink, setSpecies, setSpeciesNextLink);
         document.getElementById("species").selectedIndex = 0;
         break;
       default:
-      // Handle other dropdown selections
+        break;
     }
 
     setIsLoading(false);
