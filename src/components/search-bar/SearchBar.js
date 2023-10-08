@@ -19,15 +19,18 @@ function getSelectedUrl(items, propName, selectedValue) {
 }
 
 function selectedFilters(
+  searchText,
   selectedDDFilm,
   selectedDDPlanet,
   selectedDDSpecie,
-  searchText,
   films,
   homeworlds,
   species
 ) {
   const filters = [];
+  if (searchText !== "") {
+    filters.push({ filter: "searchText", value: searchText });
+  }
   if (selectedDDFilm !== "Select a Film") {
     filters.push({
       filter: "films",
@@ -49,27 +52,24 @@ function selectedFilters(
       dropdownData: species,
     });
   }
-  if (searchText !== "") {
-    filters.push({ filter: "searchText", value: searchText });
-  }
-
   return filters;
 }
 
 async function filterCharacters(characterSearchResults, setState, filters) {
-  let filteredData = [];
+  let filteredData = characterSearchResults.results;
   let singleFilter = filters.length === 1 ? true : false;
+  console.log("characterSearchResults.results", characterSearchResults);
 
   for (let i = 0; i < filters.length; i++) {
     filteredData = await filterData(
       filters[i].filter,
       filters[i].value,
       filters[i].dropdownData,
-      characterSearchResults.results,
+      filteredData,
       singleFilter
     );
   }
-
+  console.log("filteredData", filteredData);
   setState(filteredData);
 }
 async function filterData(
@@ -79,13 +79,22 @@ async function filterData(
   data,
   singleFilter = false
 ) {
+  console.log("filterData", filter, filterValue, dropdownData, data);
   const propName = filter === "films" ? "title" : "name";
+
   if (!singleFilter) {
-    return data.filter(
-      (character) =>
-        character.filter === getSelectedUrl(filter, propName, filterValue)
-    );
+    if (filter === "searchText") return data;
+    let url = getSelectedUrl(dropdownData, propName, filterValue);
+    console.log("url", url);
+    if (filter === "films")
+      return data.filter((character) => character.films.includes(url));
+    if (filter === "planets")
+      return data.filter((character) => character.homeworld === url);
+    if (filter === "species")
+      return data.filter((character) => character.species.includes(url));
   } else {
+    console.log("singleFilter", singleFilter);
+    if (filter === "searchText") return data;
     let url = getSelectedUrl(dropdownData, propName, filterValue);
     const characterFromFilter = await fetchCharacterFromFilter(url, filter);
     return characterFromFilter;
@@ -143,10 +152,10 @@ function SearchBar(props) {
     const selectedDDPlanet = document.getElementById("homeworlds").value;
     const selectedDDSpecie = document.getElementById("species").value;
     const filters = selectedFilters(
+      searchText,
       selectedDDFilm,
       selectedDDPlanet,
       selectedDDSpecie,
-      searchText,
       films,
       homeworlds,
       species
