@@ -1,26 +1,17 @@
-//TODO:
-// Refactor this component to use react-query if you have time - remove it from the project with the commands
-// Remove the pagination when showing resualts from the search bar - fetch data complet think if posible to optimize it (maybe i should check the code and choose the lowest code)
-// Check the weard behavior of the rendering in general - search dropdowns DONE
-// Give to the data url for photos so they are consistant
-// Fix the loading in general
-// Error handling
-// Refactor the code to be more readable
-// find the unknown species if does not exist add it
-
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import "./SearchBar.css";
 
-async function fetchDropdownData(url, setState, setNextLink) {
+async function fetchDropdownData(url, setState, setNextLink, setError) {
   try {
     const response = await axios.get(url);
     setState((prevState) => [...prevState, ...response.data.results]);
     setNextLink(response.data.next);
   } catch (error) {
     console.error(error);
+    setError("Error fetching dropdown data. Please try again later.");
   }
 }
+
 async function fetchDataForSearch(url) {
   const response = await axios.get(url);
   while (response.data.next) {
@@ -77,26 +68,37 @@ function selectedFilters(
   return filters;
 }
 
-async function filterCharacters(characterSearchResults, setState, filters) {
-  let filteredData = characterSearchResults.results;
-  let singleFilter = filters.length === 1 ? true : false;
+async function filterCharacters(
+  characterSearchResults,
+  setState,
+  filters,
+  setError
+) {
+  try {
+    let filteredData = characterSearchResults.results;
+    let singleFilter = filters.length === 1 ? true : false;
 
-  for (let i = 0; i < filters.length; i++) {
-    filteredData = await filterData(
-      filters[i].filter,
-      filters[i].value,
-      filters[i].dropdownData,
-      filteredData,
-      singleFilter
-    );
-  }
+    for (let i = 0; i < filters.length; i++) {
+      filteredData = await filterData(
+        filters[i].filter,
+        filters[i].value,
+        filters[i].dropdownData,
+        filteredData,
+        singleFilter
+      );
+    }
 
-  if (filteredData.length === 0) {
-    alert("We couldn't find anyone with those parameters.");
+    if (filteredData.length === 0) {
+      alert("We couldn't find anyone with those parameters.");
+    }
+    console.log(filteredData);
+    setState(filteredData);
+  } catch (error) {
+    console.error(error);
+    setError("Error filtering data. Please try again later.");
   }
-  console.log(filteredData);
-  setState(filteredData);
 }
+
 async function filterData(
   filter,
   filterValue,
@@ -122,6 +124,7 @@ async function filterData(
     return characterFromFilter;
   }
 }
+
 const fetchCharacterFromFilter = async (url, filter) => {
   const characters = [];
   const response = await axios.get(url);
@@ -165,10 +168,12 @@ function SearchBar(props) {
   const [homeworldsNextLink, setHomeworldsNextLink] = useState(null);
   const [speciesNextLink, setSpeciesNextLink] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     const selectedDDFilm = document.getElementById("films").value;
     const selectedDDPlanet = document.getElementById("homeworlds").value;
@@ -195,7 +200,12 @@ function SearchBar(props) {
     const response = await fetchDataForSearch(searchUrl);
 
     const characterSearchResults = response.data;
-    filterCharacters(characterSearchResults, props.onSearchResults, filters);
+    filterCharacters(
+      characterSearchResults,
+      props.onSearchResults,
+      filters,
+      setError
+    );
     setIsLoading(false);
   };
 
@@ -216,20 +226,24 @@ function SearchBar(props) {
     if (films.length > 0 || homeworlds.length > 0 || species.length > 0) return;
     console.log("initializeDropdowns");
     setIsLoading(true);
+    setError(null);
     await fetchDropdownData(
       "https://swapi.dev/api/films/",
       setFilms,
-      setFilmsNextLink
+      setFilmsNextLink,
+      setError
     );
     await fetchDropdownData(
       "https://swapi.dev/api/planets/",
       setHomeworlds,
-      setHomeworldsNextLink
+      setHomeworldsNextLink,
+      setError
     );
     await fetchDropdownData(
       "https://swapi.dev/api/species/",
       setSpecies,
-      setSpeciesNextLink
+      setSpeciesNextLink,
+      setError
     );
     setIsLoading(false);
   };
@@ -237,19 +251,25 @@ function SearchBar(props) {
   const handleDropdownChange = (selectedOption) => {
     switch (selectedOption) {
       case "loadMoreFilms":
-        fetchDropdownData(filmsNextLink, setFilms, setFilmsNextLink);
+        fetchDropdownData(filmsNextLink, setFilms, setFilmsNextLink, setError);
         document.getElementById("films").selectedIndex = 0;
         break;
       case "loadMoreHomeworlds":
         fetchDropdownData(
           homeworldsNextLink,
           setHomeworlds,
-          setHomeworldsNextLink
+          setHomeworldsNextLink,
+          setError
         );
         document.getElementById("homeworlds").selectedIndex = 0;
         break;
       case "loadMoreSpecies":
-        fetchDropdownData(speciesNextLink, setSpecies, setSpeciesNextLink);
+        fetchDropdownData(
+          speciesNextLink,
+          setSpecies,
+          setSpeciesNextLink,
+          setError
+        );
         document.getElementById("species").selectedIndex = 0;
         break;
       default:
@@ -338,6 +358,11 @@ function SearchBar(props) {
           <div className="spinner-border" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
+        </div>
+      )}
+      {error && (
+        <div className="alert alert-danger mt-3" role="alert">
+          {error}
         </div>
       )}
     </div>

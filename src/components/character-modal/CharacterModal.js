@@ -18,6 +18,29 @@ function CharacterModal({ isOpen, onClose, character }) {
     return `${day}-${month}-${year}`;
   }
 
+  if (!character) {
+    return ReactDOM.createPortal(
+      <div className="overlay-style">
+        <div className="modal-style">
+          <div className="d-flex justify-content-end">
+            <button
+              type="button"
+              className="btn-close btn-danger"
+              aria-label="Close"
+              onClick={onClose}
+            ></button>
+          </div>
+          <div className="card-modal">
+            <div className="card-body">
+              <h5 className="card-title">Error</h5>
+              <p className="card-text">Failed to load character data.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return ReactDOM.createPortal(
     <>
       <div className="overlay-style" />
@@ -38,11 +61,9 @@ function CharacterModal({ isOpen, onClose, character }) {
             color: getTextColorForSpecies(character.species),
           }}
         >
-          <h4 className="card-title">{character.name}</h4>
+          <h4 className="card-title text-center">{character.name}</h4>
           <img
-            src={`https://picsum.photos/200?random=${Math.floor(
-              Math.random() * 100
-            )}`}
+            src={character.image}
             className="card-img-top img-fluid card-img"
             alt={character.name}
           />

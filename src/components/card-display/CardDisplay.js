@@ -25,9 +25,9 @@ function CardDisplay({ characterData }) {
   };
 
   return (
-    <div className="row">
+    <div className="row justify-content-between">
       {characterData.map((character) => (
-        <div className="col-3 mb-2" key={character.name}>
+        <div className="col-2 mb-2" key={character.name}>
           <div
             className="card"
             key={character.name}
@@ -38,9 +38,7 @@ function CardDisplay({ characterData }) {
             }}
           >
             <img
-              src={`https://picsum.photos/150?random=${Math.floor(
-                Math.random() * 100
-              )}`}
+              src={character.image}
               className="card-img-top img-fluid card-img"
               alt={character.name}
             />

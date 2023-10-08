@@ -12,7 +12,7 @@ function App() {
   const [mappedData, setMappedData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
-  // const [count, setCount] = useState(0);
+  const [error, setError] = useState(null);
 
   const handleSearchResults = async (resultsPromise) => {
     const results = await resultsPromise;
@@ -28,19 +28,27 @@ function App() {
     setMappedData([]);
     setIsLoading(false);
     setTotalPages(0);
+    setError(null);
   };
 
   const fetchCharacters = async (page = 1) => {
     setIsLoading(true);
-    const response = await fetch(`https://swapi.dev/api/people/?page=${page}`);
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
+    try {
+      const response = await fetch(
+        `https://swapi.dev/api/people/?page=${page}`
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+      setIsLoading(false);
+      setTotalPages(Math.ceil(data.count / 10));
+      return data.results;
+    } catch (error) {
+      setIsLoading(false);
+      setError("Error fetching data. Please try again later.");
+      return [];
     }
-    const data = await response.json();
-    setIsLoading(false);
-    // setCount(data.count);
-    setTotalPages(Math.ceil(data.count / 10));
-    return data.results;
   };
 
   const handleMapSpeciesNames = async (results) => {
@@ -66,7 +74,9 @@ function App() {
     <div className="App">
       <header className="App-header header">Star Wars</header>
       <SearchBar onSearchResults={handleSearchResults} onReset={resetState} />
-      {isLoading ? (
+      {error ? (
+        <div className="error">{error}</div>
+      ) : isLoading ? (
         <Loader />
       ) : (
         <CardDisplay

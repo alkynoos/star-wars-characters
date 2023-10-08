@@ -1,35 +1,46 @@
 const speciesColorCache = {};
 
 export async function mapSpeciesNames(characterData) {
-  const mappedCharacterData = await Promise.all(
-    characterData.map(async (character) => {
-      if (character.species && character.species.length > 0) {
-        let speciesName = "Unknown Species";
-        if (speciesColorCache[character.species]) {
-          speciesName = speciesColorCache[character.species].name;
+  try {
+    const mappedCharacterData = await Promise.all(
+      characterData.map(async (character) => {
+        if (character.species && character.species.length > 0) {
+          let speciesName = "Unknown Species";
+          if (speciesColorCache[character.species]) {
+            speciesName = speciesColorCache[character.species].name;
+          } else {
+            try {
+              const speciesResponse = await fetch(character.species[0]);
+              const speciesData = await speciesResponse.json();
+              speciesName = speciesData.name || "Unknown Species";
+              speciesColorCache[character.species] = {
+                name: speciesName,
+                backgroundColor:
+                  speciesColors[speciesName]?.backgroundColor || "#9FA4C4",
+                textColor: speciesColors[speciesName]?.textColor || "#000000",
+              };
+            } catch (error) {
+              console.error(error);
+              throw new Error("Error fetching species data");
+            }
+          }
+          character.species = speciesName;
         } else {
-          const speciesResponse = await fetch(character.species[0]);
-          const speciesData = await speciesResponse.json();
-          speciesName = speciesData.name || "Unknown Species";
-          speciesColorCache[character.species] = {
-            name: speciesName,
-            backgroundColor:
-              speciesColors[speciesName]?.backgroundColor || "#9FA4C4",
-            textColor: speciesColors[speciesName]?.textColor || "#000000",
-          };
+          character.species = "Unknown Species";
         }
-        character.species = speciesName;
-      } else {
-        character.species = "Unknown Species";
-      }
-      return character;
-    })
-  );
+        character.image = `https://picsum.photos/150?random=${Math.floor(
+          Math.random() * 100
+        )}`;
+        return character;
+      })
+    );
 
-  return mappedCharacterData;
+    return mappedCharacterData;
+  } catch (error) {
+    console.error(error);
+    return "Error fetching character data";
+  }
 }
-
-// use the mapping of colors when u receice the data from the api
 
 export function getBackgroundColorForSpecies(species) {
   return speciesColors[species]?.backgroundColor || "bg-secondary";
@@ -193,43 +204,3 @@ export const speciesColors = {
     textColor: "text-white",
   },
 };
-
-// export const speciesList = [
-//   "Human",
-//   "Droid",
-//   "Wookie",
-//   "Rodian",
-//   "Hutt",
-//   "Yoda's species",
-//   "Trandoshan",
-//   "Mon Calamari",
-//   "Ewok",
-//   "Sullustan",
-//   "Neimodian",
-//   "Gungan",
-//   "Toydarian",
-//   "Dug",
-//   "Twi'lek",
-//   "Aleena",
-//   "Vulptereen",
-//   "Xexto",
-//   "Toong",
-//   "Cerean",
-//   "Nautolan",
-//   "Zabrak",
-//   "Tholothian",
-//   "Iktotchi",
-//   "Quermian",
-//   "Kel Dor",
-//   "Chagrian",
-//   "Geonosian",
-//   "Mirialan",
-//   "Clawdite",
-//   "Besalisk",
-//   "Kaminoan",
-//   "Skakoan",
-//   "Muun",
-//   "Togruta",
-//   "Kaleesh",
-//   "Pau'an",
-// ];
